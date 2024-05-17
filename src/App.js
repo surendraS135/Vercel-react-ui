@@ -17,7 +17,7 @@ function App() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("https://node-vercel-api-demo.vercel.app/users");
+      const response = await fetch("https://vercel-node-api-xi.vercel.app/users");
       const data = await response.json();
       setUsers(data);
     } catch (error) {
@@ -28,7 +28,7 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("https://node-vercel-api-demo.vercel.app/users", {
+      const response = await fetch("https://vercel-node-api-xi.vercel.app/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
