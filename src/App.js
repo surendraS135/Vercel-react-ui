@@ -88,6 +88,7 @@ const App = () => {
                     <Button
                       type="link"
                       danger
+                      className="button"
                       onClick={() => handleDelete(item.id)}
                     >
                       Delete
