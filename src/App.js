@@ -1,91 +1,119 @@
 import React, { useState, useEffect } from "react";
+import { Layout, List, Tabs, Button, Form, Input, Spin } from "antd";
 import "./App.css";
-import { Avatar, Layout, List, Tabs } from "antd";
-const { Header, Content, Sider } = Layout;
 
-function App() {
+const { Content } = Layout;
+const API_URL = "https://node-vercel-api-demo.vercel.app";
+
+const App = () => {
   const [users, setUsers] = useState([]);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [contact, setContact] = useState("");
-  const [company, setCompany] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    contact: "",
+    company: "",
+  });
   const [activeKey, setActiveKey] = useState("1");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isListLoading, setIsListLoading] = useState(true);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
+    setIsListLoading(true);
     try {
-      const response = await fetch("https://vercel-node-api-two.vercel.app/employees");
+      const response = await fetch(`${API_URL}/employees`);
       const data = await response.json();
       setUsers(data);
     } catch (error) {
       console.error("Error fetching users:", error);
+    } finally {
+      setIsListLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch("https://vercel-node-api-two.vercel.app/employees", {
+      const response = await fetch(`${API_URL}/employees`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, contact, company }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
       const data = await response.json();
-      setUsers([...users, data]);
-      setName("");
-      setEmail("");
-      setContact("");
-      setCompany("");
+      setUsers((prevUsers) => [...prevUsers, data]);
+      setFormData({ name: "", email: "", contact: "", company: "" });
       setActiveKey("1");
     } catch (error) {
       console.error("Error adding user:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const items = [
+  const handleDelete = async (id) => {
+    try {
+      await fetch(`${API_URL}/employees/${id}`, {
+        method: "DELETE",
+      });
+      setUsers(users.filter((user) => user.id !== id));
+    } catch (error) {
+      console.error("Error deleting user:", error);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const tabs = [
     {
       key: "1",
       label: "Users",
       children: (
-        <div style={{ height: "60vh", overflowY: "auto" }}>
+        <div style={{ height: "80vh", overflowY: "auto" }}>
           <h1>Users</h1>
-          <List
-            itemLayout="horizontal"
-            dataSource={users}
-            renderItem={(item, index) => (
-              <List.Item>
-                <List.Item.Meta
-                  // avatar={
-                  //   <Avatar
-                  //     src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${index}`}
-                  //   />
-                  // }
-                  title={<a href="https://ant.design">{item.name}</a>}
-                  description={
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Email: <b>{item.email}</b>
-                      </p>
-
-                      <p className="text-sm text-gray-500">
-                        Contact: <b>{item.contact}</b>
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Company: <b>{item.company}</b>
-                      </p>
-                    </div>
-                  }
-                />
-                {/* <div>{item.contact}</div>
-              <div>{item.company}</div> */}
-              </List.Item>
-            )}
-          />
+          {isListLoading ? (
+            <Spin size="large" />
+          ) : (
+            <List
+              itemLayout="horizontal"
+              dataSource={users}
+              renderItem={(item) => (
+                <List.Item
+                  actions={[
+                    <Button
+                      type="link"
+                      danger
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      Delete
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={<a href="https://ant.design">{item.name}</a>}
+                    description={
+                      <div>
+                        <p>
+                          Email: <b>{item.email}</b>
+                        </p>
+                        <p>
+                          Contact: <b>{item.contact}</b>
+                        </p>
+                        <p>
+                          Company: <b>{item.company}</b>
+                        </p>
+                      </div>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          )}
         </div>
       ),
     },
@@ -95,37 +123,31 @@ function App() {
       children: (
         <div>
           <h1>Add User</h1>
-          <form onSubmit={handleSubmit}>
-            <input
-              type="text"
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-            <input
-              type="text"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input
-              type="text"
-              placeholder="Contact"
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
-              required
-            />
-            <input
-              type="text"
-              placeholder="Company"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              required
-            />
-            <button type="submit">Add User</button>
-          </form>
+          <Form onFinish={handleSubmit}>
+            {["name", "email", "contact", "company"].map((field) => (
+              <Form.Item key={field}>
+                <Input
+                  type="text"
+                  name={field}
+                  placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                  value={formData[field]}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Item>
+            ))}
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={isLoading}
+                size="large"
+                block
+              >
+                Add User
+              </Button>
+            </Form.Item>
+          </Form>
         </div>
       ),
     },
@@ -134,28 +156,14 @@ function App() {
   return (
     <div className="App">
       <Layout>
-        <Content
-          style={{
-            padding: "0 48px",
-          }}
-        >
-          <Layout
-            style={{
-              padding: "24px 0",
-              // background: colorBgContainer,
-              // borderRadius: borderRadiusLG,
-            }}
-          >
-            <Content
-              style={{
-                padding: "0 24px",
-                minHeight: 280,
-              }}
-            >
+        <Content style={{ padding: "0" }}>
+          <Layout style={{ padding: "24px 0" }}>
+            <Content style={{ padding: "0 24px", minHeight: 280 }}>
               <Tabs
                 activeKey={activeKey}
-                items={items}
-                onChange={(e) => setActiveKey(e)}
+                items={tabs}
+                size="large"
+                onChange={(key) => setActiveKey(key)}
               />
             </Content>
           </Layout>
@@ -163,6 +171,6 @@ function App() {
       </Layout>
     </div>
   );
-}
+};
 
 export default App;
